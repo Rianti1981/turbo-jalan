@@ -30,6 +30,7 @@ jobs:
       # Avoid setup-android's legacy "tools" package installation (no longer published).
       - name: Install Android SDK packages
         run: |
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
           yes | sdkmanager --licenses
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
