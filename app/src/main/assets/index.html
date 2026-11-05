@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="id"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#101820"><title>Turbo Jalan</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101820;color:#fff;font-family:system-ui,Arial;touch-action:none}
+#wrap{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:8px}
+header{width:min(100%,480px);display:flex;justify-content:space-between;align-items:center;font-weight:800}
+.pill{background:#233341;border:1px solid #3d5668;border-radius:999px;padding:7px 13px;font-size:14px}
+#gamebox{position:relative;width:min(100%,480px);height:min(76vh,760px);min-height:340px;border:3px solid #526777;border-radius:18px;overflow:hidden;background:#263d2c}
+canvas{width:100%;height:100%;display:block}
+#overlay{position:absolute;inset:0;background:#08121dcc;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px}
+#overlay h1{font-size:clamp(30px,8vw,46px);margin:0 0 8px;color:#ffd34e}
+#overlay p{max-width:280px;line-height:1.5;color:#d7e3eb}
+button{border:0;border-radius:14px;padding:13px 25px;font-size:17px;font-weight:900;background:#ffd34e;color:#18212a}
+.controls{width:min(100%,480px);display:flex;justify-content:space-between;gap:20px}
+.ctrl{width:48%;height:62px;border:1px solid #60798a;background:#263b4a;color:white;border-radius:16px;font-size:26px;font-weight:900;user-select:none}
+small{color:#9fb2c0;text-align:center}
+</style></head><body><div id="wrap">
+<header><span>🏁 TURBO JALAN</span><span class="pill">SKOR: <b id="score">0</b></span></header>
+<div id="gamebox"><canvas id="game" width="480" height="760"></canvas>
+<div id="overlay"><h1>TURBO JALAN</h1><p>Hindari mobil lain dan bertahan selama mungkin! Gunakan tombol kiri dan kanan.</p><button id="start">MULAI BALAP</button></div></div>
+<div class="controls"><button class="ctrl" id="left">◀</button><button class="ctrl" id="right">▶</button></div>
+<small>Game offline • Sentuh tombol untuk mengemudi</small></div>
+<script>
+(()=>{
+const c=document.getElementById('game'),ctx=c.getContext('2d'),scoreEl=document.getElementById('score'),overlay=document.getElementById('overlay');
+const W=480,H=760,L=70,R=410;let player,traffic,score,speed,lines,playing=false,last=0,spawn=0,keys={left:false,right:false};
+function reset(){player={x:240,y:625,w:54,h:92};traffic=[];score=0;speed=5;lines=0;spawn=0;scoreEl.textContent='0'}
+function car(x,y,color,w=52,h=88){ctx.fillStyle='#080d11';ctx.fillRect(x-w/2-4,y+13,8,20);ctx.fillRect(x+w/2-4,y+13,8,20);ctx.fillRect(x-w/2-4,y+h-32,8,20);ctx.fillRect(x+w/2-4,y+h-32,8,20);ctx.fillStyle=color;ctx.fillRect(x-w/2,y,w,h);ctx.fillStyle='#bde7f5';ctx.fillRect(x-w/2+8,y+12,w-16,22);ctx.fillStyle='#263743';ctx.fillRect(x-w/2+8,y+h-29,w-16,17);ctx.fillStyle='#fff3b0';ctx.fillRect(x-w/2+5,y+4,9,6);ctx.fillRect(x+w/2-14,y+4,9,6)}
+function draw(){ctx.fillStyle='#285334';ctx.fillRect(0,0,W,H);ctx.fillStyle='#4a5056';ctx.fillRect(L,0,R-L,H);ctx.fillStyle='#e9e5d2';ctx.fillRect(L,0,7,H);ctx.fillRect(R-7,0,7,H);ctx.fillStyle='#f5f0d5';for(let y=-60+(lines%80);y<H;y+=80){ctx.fillRect(178,y,7,42);ctx.fillRect(295,y,7,42)}for(let y=-30+(lines%90);y<H;y+=90){ctx.fillStyle='#f4d35e';ctx.fillRect(43,y,18,30);ctx.fillRect(419,y,18,30)}traffic.forEach(t=>car(t.x,t.y,t.color));car(player.x,player.y,'#ef4444',player.w,player.h)}
+function end(){playing=false;overlay.style.display='flex';overlay.innerHTML='<h1>GAME OVER</h1><p>Skor kamu: <b>'+Math.floor(score)+'</b><br>Coba lagi dan pecahkan rekor!</p><button id="again">MAIN LAGI</button>';document.getElementById('again').onclick=begin}
+function begin(){reset();playing=true;overlay.style.display='none';last=performance.now();requestAnimationFrame(loop)}
+function loop(now){if(!playing)return;const dt=Math.min((now-last)/16.67,2);last=now;speed=Math.min(5+score/180,11);lines=(lines+speed*dt)%80;if(keys.left)player.x-=6.2*dt;if(keys.right)player.x+=6.2*dt;player.x=Math.max(L+38,Math.min(R-38,player.x));spawn+=dt;if(spawn>Math.max(28,72-score/12)){spawn=0;let lanes=[125,240,355],x=lanes[Math.floor(Math.random()*3)];traffic.push({x,y:-110,color:['#38bdf8','#f97316','#a78bfa','#facc15'][Math.floor(Math.random()*4)],passed:false})}traffic.forEach(t=>{t.y+=(speed+1.5)*dt;if(!t.passed&&t.y>player.y+player.h){t.passed=true;score+=10}});traffic=traffic.filter(t=>t.y<H+120);for(const t of traffic){if(Math.abs(t.x-player.x)<47&&t.y+78>player.y+8&&t.y<player.y+player.h-8){end();return}}score+=.025*dt;scoreEl.textContent=Math.floor(score);draw();requestAnimationFrame(loop)}
+function bind(id,key){const el=document.getElementById(id);el.addEventListener('pointerdown',e=>{e.preventDefault();keys[key]=true});['pointerup','pointerleave','pointercancel'].forEach(ev=>el.addEventListener(ev,()=>keys[key]=false))}
+bind('left','left');bind('right','right');window.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a')keys.left=true;if(e.key==='ArrowRight'||e.key==='d')keys.right=true});window.addEventListener('keyup',e=>{if(e.key==='ArrowLeft'||e.key==='a')keys.left=false;if(e.key==='ArrowRight'||e.key==='d')keys.right=false});document.getElementById('start').onclick=begin;reset();draw();
+})();
+</script></body></html>
